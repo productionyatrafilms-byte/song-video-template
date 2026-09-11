@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nanna Munna Bachha</title>
+    <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="stylesheet" href="./assets/css/index.css">
+</head>
+
+<body id="body" class="index-page">
+    <div id="langSelect">
+        <div id="language">
+            <label><input type="radio" onclick="val('English')" name="lang" id="en" value="English">
+                <span>E</span>
+            </label>
+            <label><input type="radio" onclick="val('Hindi')" name="lang" id="hi" value="Hindi">
+                <span>H</span>
+            </label>
+            <label><input type="radio" onclick="val('Gujrati')" name="lang" id="gu" value="Gujrati">
+                <span>G</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- moved outside #mainContainer per user request — a page-level fixed control, same as
+         #langSelect above, rather than positioned relative to the locked 16:9 frame. -->
+    <a href="./index.html" class="btn-home" id="btnHome" aria-label="Home">
+        <img src="./assets/images/HOME.png" alt="">
+    </a>
+
+    <!-- Background scenes live OUTSIDE #mainContainer, in their own full-viewport layer, so they
+         cover the whole browser window (cropping as needed) instead of being confined to
+         #mainContainer's locked 16:9 letterboxed frame — per user request. State classes
+         (is-poster/is-zooming/is-playing) are mirrored onto this element by index.js alongside
+         #mainContainer's own, since CSS here can't reach up into a different element's ancestor
+         for `.main-container.is-X` — see index.css. -->
+    <div class="bg-layer is-poster" id="bgLayer">
+
+        <!-- poster scene: door/arch illustration only (Figma node 1:149). No separate photo here —
+             see `.rectangle-photo` below, inside #mainContainer, for what's actually visible in
+             the arch opening at rest. -->
+        <div class="scene scene--poster">
+            <img src="./assets/images/bg 4 1.png" alt="" aria-hidden="true">
+        </div>
+
+        <!-- playing scene: mom & son (Figma node 1:170) — a static image, not the video itself.
+             Clicking Play here only reveals this; the actual video only starts once the launch
+             button below (inside #mainContainer) opens #videoOverlay. -->
+        <div class="scene scene--playing">
+            <img src="./assets/images/bg2.png" alt="Mother and son" aria-hidden="true">
+        </div>
+
+    </div>
+
+    <div class="main-container is-poster" id="mainContainer">
+
+        <!-- kids-with-flags photo, sitting on top of everything else in the arch opening at rest —
+             fades out immediately on Play click (see `.main-container.is-zooming .rectangle-photo`
+             in index.css), revealing what's already there underneath before the zoom animation
+             itself starts. Not part of the zoom/reveal mechanism — just a quick fade, independent
+             of it. -->
+        <div class="rectangle-photo" id="rectanglePhoto" aria-hidden="true">
+            <img src="./assets/images/Rectangle 3.png" alt="">
+        </div>
+
+        <!-- covers the photo + play button + title bar as one hover/click target (poster state
+             only) — hovering anywhere in this box reveals the play button and title bar, and
+             clicking it anywhere starts playback; sits above them in stacking order (z-index) but
+             precedes them in DOM order so the `~` sibling selector in index.css can reveal them -->
+        <button type="button" class="poster-hover-zone" id="posterHoverZone" aria-label="Play"></button>
+
+        <h1 class="title-pill" id="titlePill">
+            <span class="title-pill__text english">Mummy meri pyari hai</span>
+            <span class="title-pill__text hindi">Mummy meri pyari hai</span>
+            <span class="title-pill__text gujrati">Mummy meri pyari hai</span>
+        </h1>
+
+        <button type="button" class="btn-play" id="btnPlay" aria-label="Play" tabindex="-1">
+            <img src="./assets/images/play.png" alt="">
+        </button>
+
+        <!-- second, inner Play button — shown once the bg2 scene above is revealed. Clicking it
+             opens #videoOverlay below and starts the actual video; it does NOT itself play
+             anything, so the Fullscreen API request in index.js stays tied to a real, direct
+             click on THIS button (fullscreen must be requested synchronously inside a genuine
+             user-gesture handler, so it can't be moved earlier into the outer Play flow above). -->
+        <button type="button" class="btn-video-launch" id="btnVideoLaunch" aria-label="Play">
+            <img src="./assets/images/play.png" alt="">
+        </button>
+
+    </div>
+
+    <!-- video module overlay: hidden until #btnVideoLaunch opens it. A dedicated fixed layer
+         covering the whole page (above bg-layer/main-container's own stacking), independent of
+         the zoom/reveal mechanism above — that only gets you to the bg2 scene; this is where the
+         real assets/videos/1.mp4 actually plays. -->
+    <div class="video-overlay" id="videoOverlay" hidden>
+        <video id="songVideo" playsinline controls disablePictureInPicture
+            controlsList="nodownload noremoteplayback" src="./assets/videos/1.mp4"></video>
+        <div class="video-overlay-controls">
+            <button type="button" class="btn-video-toggle" id="btnVideoToggle" aria-label="Pause">
+                <img src="./assets/images/pause.png" alt="">
+            </button>
+            <button type="button" class="btn-video-refresh" id="btnVideoRefresh" aria-label="Restart">
+                <img src="./assets/images/refresh.png" alt="">
+            </button>
+        </div>
+    </div>
+
+    <script src="./assets/js/jquery-3.7.1.js"></script>
+    <script src="./assets/plugins/gsap.min.js"></script>
+    <script src="./assets/js/custom.js"></script>
+    <script src="./assets/js/index.js"></script>
+</body>
+
+</html>

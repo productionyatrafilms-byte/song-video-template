@@ -1,0 +1,404 @@
+/* index.html — "Nanna munna Bachha" song-video home slate
+   Built from Figma nodes 1:149 (poster) + 1:170 (playing) on the song-video-slates file.
+   See index.md for the frame breakdown and the poster/playing state-collapse rationale. */
+
+:root {
+    --color-canvas-bg: #fd8f1c;
+    --color-title-bg: #FD8F1C;
+    --color-title-border: #fffeff;
+    --color-title-text: #fff;
+}
+
+/* ===== page shell =====
+   Locked to Figma's 1920:1080 canvas as ONE proportional unit so the whole composition scales
+   together, like a Figma preview — never reflows, never rearranges (project.md rule: no px/rem/
+   em/pt/vh, layout must scale proportionally only). */
+html {
+    overflow: hidden;
+}
+
+body.index-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--color-canvas-bg);
+}
+
+/* `width: min(100%, 177.78vh)` is the standard "letterbox" trick: 177.78vh is the width that
+   exactly fills 100vh at a 16:9 ratio, so taking the min of that and the container's own 100%
+   width picks whichever dimension is the limiting one — the frame always fits the viewport with
+   no cropping and no reflow, on any screen. */
+.index-page .main-container {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 177.78vh);
+    aspect-ratio: 1920 / 1080;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+/* ===== full-viewport background layer =====
+   Per user request: the door/mom-and-son background images live OUTSIDE `.main-container`
+   entirely, in this `position:fixed`, full-viewport wrapper, so they cover the whole browser
+   window (cropping as needed) instead of being confined to `.main-container`'s own locked-aspect
+   letterboxed frame — e.g. the orange bars on a non-16:9 screen now show zoomed background instead
+   of plain color. `.main-container`'s foreground content (frame border, buttons, title, arch
+   preview) still renders on TOP of this (z-index 1 vs this layer's 0).
+
+   `perspective` only reaches DIRECT children with a 3D transform — `.scene--poster` (animated by
+   GSAP in index.js) is a direct child of THIS element, so it has to live here. The origin is still
+   expressed as a % of THIS element's own box, so it only lines up with the arch opening drawn
+   inside `.main-container` when this layer happens to match that box's aspect/position (i.e. on a
+   16:9 screen) — an accepted trade-off of letting the background crop to fill wider/narrower
+   screens instead of staying strictly locked to the frame. */
+.bg-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    perspective: 60vw;
+    perspective-origin: 50.1% 54.15%;
+}
+
+/* ===== stacked background scenes =====
+   `.scene--playing` (bg2 — the "world beyond the door") sits at the back PERMANENTLY, fully
+   opaque, the whole time — not something that fades in only once Play is clicked. `.scene--poster`
+   (the door illustration) sits on top of it, fully covering it at rest. What's actually visible in
+   the arch opening at rest is `.rectangle-photo` (inside `.main-container`), sitting on top of
+   everything — bg2 stays completely hidden until Phase 2 of the zoom reveals it full-frame. */
+.scene {
+    position: absolute;
+    inset: 0;
+    transform: translateZ(0);
+    pointer-events: none;
+}
+
+.scene img,
+.scene video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.scene--playing {
+    z-index: 1;
+    opacity: 1;
+}
+
+.bg-layer.is-playing .scene--playing {
+    pointer-events: auto;
+}
+
+.scene--poster {
+    z-index: 2;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.bg-layer.is-poster .scene--poster {
+    pointer-events: auto;
+}
+
+.bg-layer.is-playing .scene--poster {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ===== two-phase "through the door" transition (poster → playing) =====
+   Driven entirely by GSAP (assets/plugins/gsap.min.js), in the `startZoom()` timeline in
+   index.js — NOT by CSS transitions, so this stylesheet only supplies the resting values GSAP
+   animates from/to, plus instantly hiding the poster controls while `.is-zooming` is active:
+
+   PHASE 1 — "zoom in the bg-4-1 illustration until the door": GSAP tweens `.scene--poster`'s own
+   `z` (translateZ, under the `perspective`/`perspective-origin` set on `.main-container` above,
+   centered on the arch opening) from 0 up to `56vw` over `PHASE1_MS` — the door illustration
+   rigidly zooming toward camera, the sensation of traveling down the corridor formed by
+   bg-4-1's own rays. `.scene--playing` (bg2, fully hidden behind it) does not move at all yet.
+
+   PHASE 2 — "from the door onward, bg2 fullscreens": right as Phase 1's tween completes, GSAP
+   swaps `.is-poster`/`.is-zooming` for `.is-playing`. The door fades out (its own `0.3s` CSS
+   opacity transition above), revealing `.scene--playing` underneath as it scales from `0.85` up to
+   `1` — starting SMALLER, not larger, so it keeps growing in the same direction Phase 1 was
+   already moving in, rather than reversing into a shrink-to-settle. */
+.main-container.is-zooming .poster-hover-zone,
+.main-container.is-zooming .btn-play,
+.main-container.is-zooming .title-pill {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* kids-with-flags photo, arch-shaped (rounded top, flat bottom) to match the door opening, sitting
+   on top of everything (z-index 4, above the door's 2 and bg2's 1) — this is what's actually
+   visible in the arch at rest, since bg2 stays fully hidden until Phase 2. Fades out immediately
+   (fast, `0.2s`, no delay) the instant `.is-zooming` is added — independent of the zoom/reveal
+   timeline itself, which only starts becoming visible as this clears out of the way. */
+.rectangle-photo {
+    position: absolute;
+    /* expanded ~1% past the arch's own measured box on every side (was left:38.68%, top:22.21%,
+       width:22.83%, height:63.87%) to cover the thin white/cream inner ring baked into
+       bg-4-1.png, so the photo goes edge-to-edge with the pink arch outline instead of leaving
+       that ring visible around it. */
+    left: 37.7%;
+    top: 21%;
+    width: 24.8%;
+    height: 66%;
+    border-radius: 12vw 12vw 0 0;
+    overflow: hidden;
+    z-index: 4;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+
+.rectangle-photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.main-container.is-zooming .rectangle-photo,
+.main-container.is-playing .rectangle-photo {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ===== HOME icon (top-left, page-level) =====
+   Moved outside `.main-container` per user request — positioned the same way as `#langSelect`
+   (style.css: `top:4%; right:2%`) rather than as a `%` of the locked 16:9 frame, so both sit at
+   the same page-level "height" regardless of `.main-container`'s own letterboxing. */
+.btn-home {
+    position: absolute;
+    left: 2%;
+    top: 4%;
+    width: 3.5vw;
+    z-index: 999999;
+    display: block;
+}
+
+.btn-home img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* ===== poster hover/click zone =====
+   Invisible box spanning the photo + play button + title bar together (Figma px 615,239.9 to
+   1305.05,929.8 — union of the photo-arch and title-pill boxes), so hovering or clicking anywhere
+   across that whole area reveals the controls / starts playback, the way a video thumbnail works.
+   Sits ABOVE the button/title in stacking order (z-index) but BEFORE them in DOM order, so the `~`
+   sibling selectors below can react to its `:hover`. */
+.poster-hover-zone {
+    position: absolute;
+    left: 32.03%;
+    top: 22.21%;
+    width: 35.94%;
+    height: 63.87%;
+    z-index: 11;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.main-container.is-playing .poster-hover-zone {
+    display: none;
+}
+
+/* ===== title pill ("Nanna munna Bachha") =====
+   poster state: bottom-center, slides up into place from below the frame when the
+   poster-hover-zone above is hovered (Figma 1:149). playing state: top-center, always in place,
+   no slide (Figma 1:170). */
+.title-pill {
+    position: absolute;
+    left: 50%;
+    top: 82%;
+    width: 48%;
+    height: 11.83%;
+    transform: translate(-50%, 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--color-title-bg);
+    border: 0.52vw solid var(--color-title-border);
+    border-radius: 4.45vw;
+    box-shadow: 0 0.21vw 0.21vw rgba(0, 0, 0, 0.25);
+    z-index: 10;
+    pointer-events: none;
+    transition: top 0.5s ease, transform 0.35s ease;
+}
+
+.main-container.is-poster .title-pill {
+    /* `translate()`'s Y is a % of the pill's OWN height, not the container's — since the pill
+       rests at top:74.17% (only 25.83% of container height remains below it) and is itself
+       11.83% tall, the pill's TOP edge only clears the container's bottom edge (fully hidden,
+       not just partly clipped) once this exceeds ~218% ((100-74.17)/11.83 * 100); 140% left most
+       of the pill still visible above the clip line. 260% gives a clean margin past that. */
+    transform: translate(-50%, 260%);
+}
+
+.main-container.is-poster .poster-hover-zone:hover ~ .title-pill {
+    transform: translate(-50%, 0);
+}
+
+.main-container.is-playing .title-pill {
+    top: 2.75%;
+}
+
+.title-pill__text {
+    color: var(--color-title-text);
+    font-family: "Berkshire Swash", cursive;
+    font-size: 3.33vw;
+    white-space: nowrap;
+}
+
+/* ===== poster play button =====
+   Purely decorative (the poster-hover-zone above handles the actual hover + click); kept
+   focusable-off (tabindex="-1" in index.html) so the hover zone is the one real control. */
+.btn-play {
+    position: absolute;
+    left: 47.39%;
+    top: 61.48%;
+    width: 5.42%;
+    height: 9.63%;
+    z-index: 10;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: none;
+    pointer-events: none;
+}
+
+.btn-play img {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.main-container.is-poster .btn-play {
+    display: block;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.main-container.is-poster .poster-hover-zone:hover ~ .btn-play {
+    opacity: 1;
+}
+
+.main-container.is-playing .btn-play {
+    display: none;
+}
+
+/* ===== inner launch button (bg2 scene → video overlay) =====
+   Shown once `.is-playing` (the bg2 scene is revealed); opens `#videoOverlay` (index.js) rather
+   than playing anything itself. Sized/positioned the same as the old `.btn-play`. */
+.btn-video-launch {
+    display: none;
+    position: absolute;
+    left: 47.39%;
+    top: 61.48%;
+    width: 5.42%;
+    height: 9.63%;
+    z-index: 10;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: none;
+}
+
+.btn-video-launch img {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.main-container.is-playing .btn-video-launch {
+    display: block;
+}
+
+/* ===== video module overlay =====
+   Hidden (via the `hidden` attribute — index.js toggles it) until `#btnVideoLaunch` is clicked.
+   A dedicated `position: fixed` layer covering the whole page, above everything else (z-index
+   above `.main-container`'s own 1 and `.bg-layer`'s 0) — independent of the zoom/reveal state
+   machine entirely; it doesn't care whether `.main-container` is `.is-poster` or `.is-playing`. */
+.video-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: #000;
+    /* centers the (now deliberately NOT full-bleed) video — see below */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-overlay[hidden] {
+    display: none;
+}
+
+.video-overlay video {
+    display: block;
+    /* Shrunk down from full-bleed (was width/height: 100%) — at that size the native `controls`
+       bar (seek slider, volume, native fullscreen) sits flush against the screen edges, is easy
+       to miss, and stretches to the full viewport width, which looked wrong / made the bar hard
+       to read. Capping the video's own box instead lets it size to its natural aspect ratio with
+       the controls bar sized to match it, not the screen. This is the WINDOWED size only —
+       index.js requests real fullscreen on this element the instant the overlay opens, which
+       overrides this entirely (native fullscreen ignores CSS sizing) until the viewer shrinks it
+       back down via the native controls, landing back at this capped size. */
+    max-width: 80vw;
+    max-height: 80vh;
+}
+
+.video-overlay-controls {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5vw;
+    pointer-events: none;
+}
+
+.btn-video-toggle,
+.btn-video-refresh {
+    width: 5vw;
+    height: 5vw;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: none;
+    pointer-events: auto;
+}
+
+.btn-video-toggle img,
+.btn-video-refresh img {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* ===== touch-device fallback for the hover-reveal =====
+   CSS `:hover` has no real, persistent equivalent on a touchscreen — there's no cursor sitting
+   over the element before the tap, so `.poster-hover-zone:hover` above never matches on a phone.
+   The tap itself still works fine (it's a `click` handler in index.js, not gated on hover), but
+   without this, mobile visitors would see NO play button and NO title at all before tapping blind.
+   `(hover: none)` is a capability query (does this input device support hovering at all?), not a
+   viewport-width breakpoint — it doesn't rearrange the layout, so it doesn't conflict with the "no
+   media queries" rule below; it only changes the RESTING opacity/position of these two elements
+   back to their already-hovered values, on devices where hover could never reveal them anyway. */
+@media (hover: none) {
+    .main-container.is-poster .title-pill {
+        transform: translate(-50%, 0);
+    }
+
+    .main-container.is-poster .btn-play {
+        opacity: 1;
+    }
+}
+
+/* No media queries beyond the touch fallback above: the whole `.main-container` scales as one
+   locked-aspect-ratio unit and never rearranges on any viewport. */
