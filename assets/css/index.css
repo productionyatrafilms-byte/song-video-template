@@ -381,6 +381,36 @@ body.index-page {
     height: 100%;
 }
 
+/* ===== video overlay title =====
+   Sibling of `songVideo`, not a descendant — while `songVideo` is the native Fullscreen API
+   element (see index.js `enterFullscreen`), the browser only renders the fullscreened element
+   and its own descendants, so this title is automatically hidden during real fullscreen with no
+   extra JS/CSS needed, and automatically reappears once the viewer exits back to the windowed
+   (`max-width/max-height` capped) video size inside `#videoOverlay`. */
+.video-overlay-title {
+    position: absolute;
+    top: 3%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6vw 2.5vw;
+    background: var(--color-title-bg);
+    border: 0.3vw solid var(--color-title-border);
+    border-radius: 3vw;
+    box-shadow: 0 0.21vw 0.21vw rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+}
+
+.video-overlay-title span {
+    color: var(--color-title-text);
+    font-family: "Berkshire Swash", cursive;
+    font-size: 2vw;
+    white-space: nowrap;
+}
+
 /* ===== touch-device fallback for the hover-reveal =====
    CSS `:hover` has no real, persistent equivalent on a touchscreen — there's no cursor sitting
    over the element before the tap, so `.poster-hover-zone:hover` above never matches on a phone.
