@@ -1,7 +1,7 @@
 
 @font-face {
     font-family: "Baloo";
-    src: url("../../fonts/Baloo Regular 400.ttf") format("truetype");
+    src: url("../../fonts/Baloo-Regular-400.ttf") format("truetype");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -52,7 +52,7 @@ html {
 body {
     margin: 0;
     position: relative;
-    font-family: Poppins;
+    font-family: "Baloo", cursive, sans-serif;
     min-height: 100%;
     overflow: hidden auto;
 }
